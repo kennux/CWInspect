@@ -5,10 +5,8 @@ import java.io.IOException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Enumeration;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Set;
 
 import net.kennux.cwinspect.packets.APacket;
 import net.kennux.cwinspect.packets.UnknownPacket;
@@ -25,6 +23,7 @@ public class PacketIdentifier
 		return identifyPacket(packetId, "net.kennux.cwinspect.packets.client");
 	}
 	
+	@SuppressWarnings("rawtypes")
 	private static APacket identifyPacket(int packetId, String packageName)
 	{
 		// Get all packets in the package
@@ -62,6 +61,7 @@ public class PacketIdentifier
 	 * @throws ClassNotFoundException
 	 * @throws IOException
 	 */
+	@SuppressWarnings("rawtypes")
 	private static ArrayList<Class> getClasses(String packageName)
 	{
 		try
@@ -101,6 +101,7 @@ public class PacketIdentifier
 	 * @return The classes
 	 * @throws ClassNotFoundException
 	 */
+	@SuppressWarnings("rawtypes")
 	private static List<Class> findClasses(File directory, String packageName) throws ClassNotFoundException
 	{
 	    List<Class> classes = new ArrayList<Class>();

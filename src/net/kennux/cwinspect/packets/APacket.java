@@ -5,12 +5,11 @@ import java.util.Iterator;
 import java.util.Map.Entry;
 
 import net.kennux.cwinspect.main.EntryPoint;
-import net.kennux.cwinspect.packets.data.*;
 
 public abstract class APacket
 {
 	// Output
-	protected HashMap<String,PacketValue> values;
+	protected HashMap<String,Object> values;
 	
 	// Packet data
 	protected byte[] packetData;
@@ -26,15 +25,17 @@ public abstract class APacket
 	
 	public APacket()
 	{
-		this.values = new HashMap<String,PacketValue>();
+		this.values = new HashMap<String,Object>();
 	}
 	
-	public void setValue(String key, PacketValue value)
+	public void setValue(String key, Object value)
 	{
 		this.values.put(key, value);
 	}
 	
-	// Overload toString method for simple output packet information
+	/**
+	 * Overload toString method for simple output packet information
+	 */
 	public String toString()
 	{
 		String returnString = "";
@@ -52,21 +53,27 @@ public abstract class APacket
 		// Packet identified
 		returnString = returnString + "Packet Name: " + this.getClass().getSimpleName() + "\r\n";
 		
-		Iterator<Entry<String,PacketValue>> iterator = this.values.entrySet().iterator();
+		Iterator<Entry<String,Object>> iterator = this.values.entrySet().iterator();
 		
 		// Iterate through all values
 		while (iterator.hasNext())
 		{
 			// Output
-			Entry<String,PacketValue> currentEntry = iterator.next();
+			Entry<String,Object> currentEntry = iterator.next();
 			
-			returnString = returnString + "Valuename: " + currentEntry.getKey() + "\tValue: " + currentEntry.getValue().getValueTypeName() + " | " + currentEntry.getValue().getValue();
+			returnString = returnString + "Valuename: " + currentEntry.getKey() + "\tValue: " + currentEntry.getValue().getClass().getSimpleName() + " | " +
+					currentEntry.getValue() + "\r\n";
 		}
 		
 		return returnString;
 	}
 	
-	// Helper function for output
+	/**
+	 * Helper function for outputing packet information
+	 * @param data
+	 * @param columns
+	 * @return
+	 */
 	private static String byteToHexDump(byte[] data, int columns)
 	{
 		String hexDump = "";
@@ -83,7 +90,6 @@ public abstract class APacket
 				// Substring 1 for removing first " "
 				try
 				{
-					// currentLine = currentLine.substring(1) + new String(currentBytes, "UTF-8");
 					currentLine = byteToHex(currentBytes) + "\t" + new String(currentBytes, "UTF-8");
 					currentBytes = new byte[columns];
 				}
@@ -102,6 +108,12 @@ public abstract class APacket
 		return hexDump;
 	}
 	
+	/**
+	 * Converts byte array to hex string
+	 * ex. 0F 8B D4 AB
+	 * @param bytes
+	 * @return
+	 */
 	private static String byteToHex(byte[] bytes)
 	{
 		StringBuilder sb = new StringBuilder();

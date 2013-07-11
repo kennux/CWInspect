@@ -1,8 +1,8 @@
 package net.kennux.cwinspect.packets.server;
 
 import net.kennux.cwinspect.packets.APacket;
-import net.kennux.cwinspect.packets.data.PacketValue;
 
+// This is only an example!
 public class SeedPacket extends APacket
 {
 	public int getPacketId()
@@ -13,14 +13,8 @@ public class SeedPacket extends APacket
 	public void loadPacket(byte[] data)
 	{
 		super.loadPacket(data);
-		PacketValue value = new PacketValue(data[1]);
+		byte value = 58;
 		this.values.put("Unknown", value);
-	}
-	
-	public String toString()
-	{
-		String str = super.toString();
-		return str;
 	}
 
 	public byte[] buildPacket()

@@ -3,18 +3,17 @@ package net.kennux.cwinspect.networking;
 import java.io.IOException;
 import java.net.*;
 import java.io.*;
-import java.util.zip.*;
+import java.util.Date;
 
+import net.kennux.cwinspect.hooks.AHook;
+import net.kennux.cwinspect.main.EntryPoint;
 import net.kennux.cwinspect.packets.APacket;
-import net.kennux.cwinspect.packets.IHook;
+import net.kennux.cwinspect.packets.helpers.ByteUtils;
 
-public class SocketProxy {
-	
-	// Networking (Sockets)
-	private ServerSocket listenerSocket;
-	
+public class SocketProxy
+{
 	// Thread for sockets
-	private Thread clientThread, cwThread;
+	private Thread clientThread;
 	
 	// Information for sockets
 	private String remoteHost;
@@ -22,10 +21,17 @@ public class SocketProxy {
 	
 	private SocketThread clientThreadInstance;
 	
+	/**
+	 * Cube World socket thread.
+	 * Used for logging data and proxy them to client
+	 * @author KennuX
+	 *
+	 */
 	class CWThread implements Runnable
 	{
 		private Socket clientSocket, cwSocket;
 		private InputStream inputStream;
+		@SuppressWarnings("unused")
 		private OutputStream outputStream;
 		
 		public CWThread(Socket clientSocket, Socket cwSocket, InputStream inputStream, OutputStream outputStream)
@@ -36,8 +42,23 @@ public class SocketProxy {
 			this.cwSocket = cwSocket;
 		}
 		
+		@SuppressWarnings("deprecation")
 		public void run()
 		{
+			// Get server logpath
+			String serverLogPath = EntryPoint.configuration.getProperty("log_binary_server");
+			String timestampLog = EntryPoint.configuration.getProperty("log_timestamps");
+			String unknownLogFile = EntryPoint.configuration.getProperty("log_unknown");
+			FileOutputStream logOut = null;
+			try
+			{
+				logOut = new FileOutputStream(serverLogPath, true);
+			}
+			catch (Exception e)
+			{
+				e.printStackTrace();
+			}
+			
 			while (this.cwSocket.isConnected())
 			{
 				// 16K Buffer
@@ -63,33 +84,86 @@ public class SocketProxy {
 						continue;
 					}
 					
+					// Get packet id (int32)
+					int packetId = ByteUtils.readInt32(data, 0);
+					
 					// Identify packet
-					APacket packet = PacketIdentifier.identifyServerPacket((int) data[0]);
+					APacket packet = PacketIdentifier.identifyServerPacket(packetId);
 					packet.loadPacket(data);
 					
+					// If packet is unknown check for logfile
+					if ( ! unknownLogFile.equals("") && packet.getPacketId() < 0)
+					{
+						// Open uknown logfile
+						BufferedWriter bufferWriter = new BufferedWriter(new FileWriter(unknownLogFile, true));
+						bufferWriter.append("Server -> Client [" + new java.util.Date().toLocaleString() + "] [" + (System.currentTimeMillis()  % 1000) + "]\r\n" + packet);
+						bufferWriter.flush();
+						bufferWriter.close();
+					}
+					
 					// Hooks
-					IHook hook = HookIdentifier.identifyServerHook((int) data[0]);
+					AHook hook = HookIdentifier.identifyServerHook(packetId);
 					if (hook != null)
 					{
-						this.outputStream.write(hook.hook(data));
+						hook.hook(data, this.clientSocket.getOutputStream(), this.cwSocket.getOutputStream());
+						System.out.println("Hooked " + hook.getClass().getSimpleName() + " - Information:\r\n" + hook);
 					}
 					
 					// Output
-					System.out.print("Server -> Client [" + new java.util.Date().toLocaleString() + "]\r\n" + packet);
+					System.out.print("Server -> Client [" + new java.util.Date().toLocaleString() + "] [" + (System.currentTimeMillis()  % 1000) + "]\r\n" + packet);
 					
+					// Should i log it binary?
+					if ( ! serverLogPath.equals("") && logOut != null)
+					{
+						// Open logfile
+						long beforeSize = new File(serverLogPath).length();
+						logOut.write(data);
+						logOut.flush();
+						long afterSize = new File(serverLogPath).length();
+						
+						
+						// Open timestamp logfile
+						BufferedWriter bufferWriter = new BufferedWriter(new FileWriter(timestampLog, true));
+						bufferWriter.append("Server -> Client [" + new Date().toLocaleString() + "] [" + (System.currentTimeMillis()  % 1000) + "] 0x" + Long.toHexString(beforeSize).toUpperCase() +
+								" - 0x" + Long.toHexString(afterSize).toUpperCase() + "\r\n");
+						bufferWriter.flush();
+						bufferWriter.close();
+					}
 					// Send to client
 					this.clientSocket.getOutputStream().write(data);
 				}
 				catch (Exception e)
 				{
-					e.printStackTrace();
+					try
+					{
+						this.cwSocket.close();
+					}
+					catch (Exception ex)
+					{
+						// ex.printStackTrace();
+					}
+					
+					// e.printStackTrace();
+					return;
 				}
 			}
+
+			try
+			{
+				logOut.close();
+			}
+			catch (IOException e)
+			{
+				e.printStackTrace();
+			}
 		}
-		
 	}
 	
-	// Socket thread
+	/**
+	 * Local Socket thread, used to log data from client and send it to server
+	 * @author KennuX
+	 *
+	 */
 	class SocketThread implements Runnable
 	{
 		// Socketing
@@ -121,12 +195,27 @@ public class SocketProxy {
 			this.isRunning = true;
 		}
 
+		@SuppressWarnings("deprecation")
 		public void run()
 		{
 			while (this.isRunning)
 			{
 				try
 				{
+					// Get client logpath
+					String clientLogPath = EntryPoint.configuration.getProperty("log_binary_client");
+					String timestampLog = EntryPoint.configuration.getProperty("log_timestamps");
+					String unknownLogFile = EntryPoint.configuration.getProperty("log_unknown");
+					FileOutputStream logOut = null;
+					try
+					{
+						logOut = new FileOutputStream(clientLogPath, true);
+					}
+					catch (Exception e)
+					{
+						e.printStackTrace();
+					}
+					
 					// Accept socket
 					this.remoteSocket = this.listenerSocket.accept();
 
@@ -150,7 +239,7 @@ public class SocketProxy {
 						{
 							int packetLength = this.remoteInputStream.read(buffer);
 							
-							// Read data
+							// Read data if there is any data
 							byte[] data;
 							if (packetLength > 0)
 							{
@@ -166,19 +255,49 @@ public class SocketProxy {
 								continue;
 							}
 							
+							// Get packet id (int32)
+							int packetId = ByteUtils.readInt32(data, 0);
+							
 							// Identify packet
-							APacket packet = PacketIdentifier.identifyClientPacket((int) data[0]);
+							APacket packet = PacketIdentifier.identifyClientPacket(packetId);
 							packet.loadPacket(data);
 
+							// If packet is unknown check for logfile
+							if ( ! unknownLogFile.equals("") && packet.getPacketId() < 0)
+							{
+								// Open uknown logfile
+								BufferedWriter bufferWriter = new BufferedWriter(new FileWriter(unknownLogFile, true));
+								bufferWriter.append("Server -> Client [" + new java.util.Date().toLocaleString() + "] [" + (System.currentTimeMillis()  % 1000) + "]\r\n" + packet);
+								bufferWriter.flush();
+								bufferWriter.close();
+							}
+							
 							// Hooks
-							IHook hook = HookIdentifier.identifyClientHook((int) data[0]);
+							AHook hook = HookIdentifier.identifyClientHook(packetId);
 							if (hook != null)
 							{
-								this.remoteOutputStream.write(hook.hook(data));
+								hook.hook(data, this.remoteSocket.getOutputStream(), this.cwSocket.getOutputStream());
 							}
 							
 							// Output
-							System.out.print("Client -> Server [" + new java.util.Date().toLocaleString() + "]\r\n" + packet);
+							System.out.print("Client -> Server [" + new java.util.Date().toLocaleString() + "] [" + (System.currentTimeMillis()  % 1000) + "]\r\n" + packet);
+							
+							// Should i log it binary?
+							if ( ! clientLogPath.equals("") && logOut != null)
+							{
+								// Open logfile
+								long beforeSize = new File(clientLogPath).length();
+								logOut.write(data);
+								logOut.flush();
+								long afterSize = new File(clientLogPath).length();
+								
+								// Open timestamp logfile
+								BufferedWriter bufferWriter = new BufferedWriter(new FileWriter(timestampLog, true));
+								bufferWriter.append("Client -> Server [" + new Date().toLocaleString() + "] [" + (System.currentTimeMillis() % 1000) + "] 0x" + Long.toHexString(beforeSize).toUpperCase() +
+										" - 0x" + Long.toHexString(afterSize).toUpperCase() + "\r\n");
+								bufferWriter.flush();
+								bufferWriter.close();
+							}
 							
 							// Send to server
 							this.cwOutputStream.write(data);
@@ -188,6 +307,7 @@ public class SocketProxy {
 							running = false;
 						}
 					}
+					
 					// Stop/Close all resources
 					this.cwThread.stop();
 					this.cwSocket.close();
@@ -206,6 +326,10 @@ public class SocketProxy {
 			}
 		}
 		
+		/**
+		 * Connects the cubeworlds socket to the cube worlds server and starts its thread
+		 */
+		@SuppressWarnings("deprecation")
 		private void connectCW()
 		{
 			try
@@ -215,6 +339,13 @@ public class SocketProxy {
 				this.cwInputStream = this.cwSocket.getInputStream();
 				this.cwOutputStream = this.cwSocket.getOutputStream();
 				this.cwThreadInstance = new CWThread(this.remoteSocket, this.cwSocket, this.cwInputStream, this.cwOutputStream);
+				
+				// Stop thread if it is still running!
+				if (this.cwThread != null)
+				{
+					this.cwThread.stop();
+				}
+				
 				this.cwThread = new Thread(this.cwThreadInstance);
 				this.cwThread.start();
 			}
@@ -224,6 +355,10 @@ public class SocketProxy {
 			}
 		}
 		
+		/**
+		 * Stop proxy
+		 */
+		@SuppressWarnings("deprecation")
 		public void stop()
 		{
 			try
@@ -241,6 +376,13 @@ public class SocketProxy {
 	}
 	
 	
+	/**
+	 * Initialize the socket proxy
+	 * @param remoteHost
+	 * @param remotePort
+	 * @param localPort
+	 * @throws IOException
+	 */
 	public SocketProxy(String remoteHost, int remotePort, int localPort) throws IOException
 	{
 		this.remoteHost = remoteHost;
@@ -248,6 +390,9 @@ public class SocketProxy {
 		this.localPort = localPort;
 	}
 	
+	/**
+	 * Starts the listeining socket and its thread
+	 */
 	public void startSocket()
 	{
 		try
@@ -262,8 +407,13 @@ public class SocketProxy {
 		}
 	}
 	
+	/**
+	 * Stops the threads
+	 */
+	@SuppressWarnings("deprecation")
 	public void stop()
 	{
 		this.clientThreadInstance.stop();
+		this.clientThread.stop();
 	}
 }

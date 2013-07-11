@@ -5,28 +5,25 @@ import java.io.IOException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Enumeration;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Set;
 
-import net.kennux.cwinspect.packets.APacket;
-import net.kennux.cwinspect.packets.IHook;
-import net.kennux.cwinspect.packets.UnknownPacket;
+import net.kennux.cwinspect.hooks.AHook;
 
 public class HookIdentifier
 {
-	public static IHook identifyServerHook(int packetId)
+	public static AHook identifyServerHook(int packetId)
 	{
-		return identifyHook(packetId, "net.kennux.cwinspect.packets.server");
+		return identifyHook(packetId, "net.kennux.cwinspect.hooks.server");
 	}
 	
-	public static IHook identifyClientHook(int packetId)
+	public static AHook identifyClientHook(int packetId)
 	{
-		return identifyHook(packetId, "net.kennux.cwinspect.packets.client");
+		return identifyHook(packetId, "net.kennux.cwinspect.hooks.client");
 	}
 	
-	private static IHook identifyHook(int packetId, String packageName)
+	@SuppressWarnings("rawtypes")
+	private static AHook identifyHook(int packetId, String packageName)
 	{
 		// Get all packets in the package
 		ArrayList<Class> hookClasses = getClasses(packageName);
@@ -38,7 +35,7 @@ public class HookIdentifier
 			// Get current packet
 			try
 			{
-				IHook hook = (IHook) iterator.next().newInstance();
+				AHook hook = (AHook) iterator.next().newInstance();
 				
 				if (hook.getPacketId() == packetId)
 				{
@@ -63,6 +60,7 @@ public class HookIdentifier
 	 * @throws ClassNotFoundException
 	 * @throws IOException
 	 */
+	@SuppressWarnings("rawtypes")
 	private static ArrayList<Class> getClasses(String packageName)
 	{
 		try
@@ -102,6 +100,7 @@ public class HookIdentifier
 	 * @return The classes
 	 * @throws ClassNotFoundException
 	 */
+	@SuppressWarnings("rawtypes")
 	private static List<Class> findClasses(File directory, String packageName) throws ClassNotFoundException
 	{
 	    List<Class> classes = new ArrayList<Class>();
