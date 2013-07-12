@@ -45,7 +45,7 @@ Packets have to be put into
 
 Packets have to implement the following Methods:
 - getPacketId() -> Return integer of the packet id
-- loadPacket(byte[] data) -> Loads packet data and adds it with value names into the HashMap this.values
+- loadPacket(byte[] data) -> Loads packet data and adds it with value names into the HashMap this.values, return -1 for packet length unknown or the length of the packet
 - buildPacket() -> Return byte array of the built packet (When using implementation for sending packets, otherwise return null)
 
 
@@ -74,6 +74,8 @@ Properties
 - log_timestamps = Logfile for data timestamps, needed for binary log!
 - log_unknown = Log unknown packets as Hex Dump
 - log_data = 1 for log data in console, 0 for not log data
+- log_binary = 1 for log binary data in console or logfile, 0 for only log hex (ex. 0F 14 3A)
+- columns_hex = how much bytes in hexadecimal (ex. 0F 15) per line?
 
 License
 =========

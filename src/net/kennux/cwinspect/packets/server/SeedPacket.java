@@ -10,11 +10,13 @@ public class SeedPacket extends APacket
 		return 15;
 	}
 	
-	public void loadPacket(byte[] data)
+	public int loadPacket(byte[] data)
 	{
 		super.loadPacket(data);
 		byte value = 58;
 		this.values.put("Unknown", value);
+		
+		return -1;
 	}
 
 	public byte[] buildPacket()

@@ -163,7 +163,7 @@ public class ByteUtils
 	 * @param length
 	 * @return
 	 */
-	private static byte[] getBytesRange(byte[] data, int offset, int length)
+	public static byte[] getBytesRange(byte[] data, int offset, int length)
 	{
 		byte[] rangeData = new byte[length];
 		

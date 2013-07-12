@@ -5,6 +5,7 @@ import java.util.Iterator;
 import java.util.Map.Entry;
 
 import net.kennux.cwinspect.main.EntryPoint;
+import net.kennux.cwinspect.packets.helpers.ByteUtils;
 
 public abstract class APacket
 {
@@ -17,10 +18,15 @@ public abstract class APacket
 	public abstract int getPacketId();
 	public abstract byte[] buildPacket();
 	
-	// Load packet into local variable
-	public void loadPacket(byte[] data)
+	/**
+	 * Loads packet and returns its size, -1 if unknown
+	 * @param data
+	 * @return
+	 */
+	public int loadPacket(byte[] data)
 	{
 		this.packetData = data;
+		return -1;
 	}
 	
 	public APacket()
@@ -41,17 +47,17 @@ public abstract class APacket
 		String returnString = "";
 		if (EntryPoint.configuration.getProperty("log_data").equals("1"))
 		{
-			returnString = returnString + byteToHexDump(this.packetData, 8);
+			returnString = returnString + byteToHexDump(this.packetData, Integer.parseInt(EntryPoint.configuration.getProperty("columns_hex")), (EntryPoint.configuration.getProperty("log_binary").equals("1")));
 		}
 		
 		if (this.getPacketId() < 0)
 		{
 			// Unidentified
-			return returnString + "This packet could not get identified (ID=" + (int) this.packetData[0] + ")!\r\n";
+			return returnString + "This packet could not get identified (ID=" + ByteUtils.readInt32(this.packetData, 0) + ")!\r\n";
 		}
 		
 		// Packet identified
-		returnString = returnString + "Packet Name: " + this.getClass().getSimpleName() + "\r\n";
+		returnString = returnString + "Packet Name: " + this.getClass().getSimpleName() + "\r\nPacket Length: " + this.packetData.length;
 		
 		Iterator<Entry<String,Object>> iterator = this.values.entrySet().iterator();
 		
@@ -74,7 +80,7 @@ public abstract class APacket
 	 * @param columns
 	 * @return
 	 */
-	private static String byteToHexDump(byte[] data, int columns)
+	private static String byteToHexDump(byte[] data, int columns, boolean log_binary)
 	{
 		String hexDump = "";
 		String currentLine = "";
@@ -90,8 +96,14 @@ public abstract class APacket
 				// Substring 1 for removing first " "
 				try
 				{
-					currentLine = byteToHex(currentBytes) + "\t" + new String(currentBytes, "UTF-8");
-					currentBytes = new byte[columns];
+					currentLine = byteToHex(currentBytes);
+					
+					// Should i log binary?
+					if (log_binary)
+					{
+						currentLine = currentLine + "\t" + new String(currentBytes, "UTF-8");
+						currentBytes = new byte[columns];
+					}
 				}
 				catch (Exception e)
 				{
