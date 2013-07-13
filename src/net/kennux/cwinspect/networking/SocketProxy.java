@@ -98,7 +98,7 @@ public class SocketProxy
 						// ex.printStackTrace();
 					}
 					
-					// e.printStackTrace();
+					e.printStackTrace();
 					return;
 				}
 			}
@@ -370,12 +370,24 @@ public class SocketProxy
 		 */
 		private void gotData(byte[] data, int packetLength, FileOutputStream logOut, String timestampLog, String unknownLogFile, String clientLogPath) throws Exception
 		{
+
+			byte[] dataStillAvail = null;
+			
 			// Get packet id (int32)
 			int packetId = ByteUtils.readInt32(data, 0);
 			
 			// Identify packet
 			APacket packet = PacketIdentifier.identifyClientPacket(packetId);
-			packet.loadPacket(data);
+			int packetLen = packet.loadPacket(data);
+			
+			// Is packet len known?
+			if (packetLen > 0)
+			{
+				// Set data still available
+				dataStillAvail = new byte[data.length-packetLen];
+				dataStillAvail = ByteUtils.getBytesRange(data, packetLen, packetLength-packetLen);
+				data = ByteUtils.getBytesRange(data, 0, packetLen);
+			}
 
 			// If packet is unknown check for logfile
 			if ( ! unknownLogFile.equals("") && packet.getPacketId() < 0)
@@ -416,6 +428,13 @@ public class SocketProxy
 			
 			// Send to server
 			this.cwOutputStream.write(data);
+			
+			// Still data available?
+			if (dataStillAvail != null)
+			{
+				// Call again
+				this.gotData(dataStillAvail, packetLength, logOut, timestampLog, unknownLogFile, clientLogPath);
+			}
 		}
 	}
 	

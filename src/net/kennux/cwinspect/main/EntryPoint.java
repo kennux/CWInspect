@@ -18,6 +18,7 @@ public class EntryPoint {
 	 */
 	public static void main(String[] args)
 	{
+		
 		System.out.println("Starting CWInspect...");
 		System.out.println("Loading Config...");
 		
@@ -34,7 +35,7 @@ public class EntryPoint {
 		}
 
 		System.out.println("Config loaded!");
-		System.out.println("Starting Server!");
+		System.out.println("Starting Server...");
 		
 		try
 		{
@@ -64,16 +65,4 @@ public class EntryPoint {
 			}
 		}
 	}
-
-	private static String byteToHex(byte[] bytes)
-	{
-		StringBuilder sb = new StringBuilder();
-	    for (byte b : bytes)
-	    {
-	        sb.append(String.format("%02X ", b));
-	    }
-	    
-	    return sb.toString();
-	}
-
 }

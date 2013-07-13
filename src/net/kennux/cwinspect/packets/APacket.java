@@ -57,7 +57,7 @@ public abstract class APacket
 		}
 		
 		// Packet identified
-		returnString = returnString + "Packet Name: " + this.getClass().getSimpleName() + "\r\nPacket Length: " + this.packetData.length;
+		returnString = returnString + "Packet Name: " + this.getClass().getSimpleName() + "\r\nPacket Length: " + this.packetData.length + "\r\n";
 		
 		Iterator<Entry<String,Object>> iterator = this.values.entrySet().iterator();
 		
