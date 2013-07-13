@@ -137,10 +137,18 @@ public class SocketProxy
 			// Is packet len known?
 			if (packetLen > 0)
 			{
-				// Set data still available
-				dataStillAvail = new byte[data.length-packetLen];
-				dataStillAvail = ByteUtils.getBytesRange(data, packetLen, packetLength-packetLen);
-				data = ByteUtils.getBytesRange(data, 0, packetLen);
+				try
+				{
+					// Set data still available
+					dataStillAvail = new byte[data.length-packetLen];
+					dataStillAvail = ByteUtils.getBytesRange(data, packetLen, packetLength-packetLen);
+					data = ByteUtils.getBytesRange(data, 0, packetLen);
+				}
+				catch (Exception e)
+				{
+					System.out.println("Error in packet class: " + packet.getClass().getSimpleName());
+					e.printStackTrace();
+				}
 			}
 			
 			// Hooks
@@ -185,7 +193,7 @@ public class SocketProxy
 			this.clientSocket.getOutputStream().write(data);
 			
 			// Still data available?
-			if (dataStillAvail != null)
+			if (dataStillAvail != null && dataStillAvail.length > 0)
 			{
 				// Call again
 				this.gotData(dataStillAvail, packetLength, logOut, timestampLog, unknownLogFile, serverLogPath);
@@ -383,10 +391,18 @@ public class SocketProxy
 			// Is packet len known?
 			if (packetLen > 0)
 			{
-				// Set data still available
-				dataStillAvail = new byte[data.length-packetLen];
-				dataStillAvail = ByteUtils.getBytesRange(data, packetLen, packetLength-packetLen);
-				data = ByteUtils.getBytesRange(data, 0, packetLen);
+				try
+				{
+					// Set data still available
+					dataStillAvail = new byte[data.length-packetLen];
+					dataStillAvail = ByteUtils.getBytesRange(data, packetLen, packetLength-packetLen);
+					data = ByteUtils.getBytesRange(data, 0, packetLen);
+				}
+				catch (Exception e)
+				{
+					System.out.println("Error in packet class: " + packet.getClass().getSimpleName());
+					e.printStackTrace();
+				}
 			}
 
 			// If packet is unknown check for logfile
@@ -430,7 +446,7 @@ public class SocketProxy
 			this.cwOutputStream.write(data);
 			
 			// Still data available?
-			if (dataStillAvail != null)
+			if (dataStillAvail != null && dataStillAvail.length > 0)
 			{
 				// Call again
 				this.gotData(dataStillAvail, packetLength, logOut, timestampLog, unknownLogFile, clientLogPath);
